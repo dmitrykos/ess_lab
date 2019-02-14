@@ -1,15 +1,47 @@
+/* Copyright (c) 2019 by Dmitry Kostjuchenko (dmitrykos@neutroncode.com)
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
+
 #ifndef __HW_HELPER_H
 #define __HW_HELPER_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
  
 #include "spi_driver.h"
 
 #ifdef __cplusplus
 extern C {
 #endif
+
+#define __hw_inline __inline
+#define __hw_forceinline __forceinline
+
+// Application base (must be the first member of the application structure)
+typedef struct hw_app_base_t
+{
+	uint32_t __pad;
+}
+hw_app_base_t;
 
 // Generic delay function prototype
 typedef void (* DelayFunc)(uint32_t tm);
@@ -25,6 +57,9 @@ typedef void (* DelayFunc)(uint32_t tm);
 #define TRUE 1
 #define FALSE 0
 typedef uint8_t bool_t;
+	
+// User task handler
+typedef void (* UserTaskHandler)(void *user_data);
 
 // Vector3
 typedef struct vector3_s16
@@ -44,7 +79,7 @@ vector3_s32;
 #define VEC_ADD(V1, V2)          do { (V1).x += (V2).x; (V1).y += (V2).y; (V1).z += (V2).z; } while (0)	
 #define VEC_SUB(V1, V2)          do { (V1).x -= (V2).x; (V1).y -= (V2).y; (V1).z -= (V2).z; } while (0)
 #define VEC_MAGNITUDE_SQARED(V1) ((V1).x * (V1).x + (V1).y * (V1).y + (V1).z * (V1).z)	
-static inline vector3_s16 VEC_AVERAGE(vector3_s16 V1, vector3_s16 V2)
+static __hw_forceinline vector3_s16 VEC_AVERAGE(vector3_s16 V1, vector3_s16 V2)
 {
 	(V1).x = ((int32_t)(V1).x + (V2).x) / 2;
 	(V1).y = ((int32_t)(V1).y + (V2).y) / 2;
@@ -107,7 +142,7 @@ bool_t TMR_Init_ISR(ETmrIsrId id, uint16_t prescaler, uint16_t period, TMR_ISR_C
 void TMR_Init_ISR_ResolutionUsec(ETmrIsrId id, uint32_t usec, TMR_ISR_Callback cb);
 
 // Read register (hi/lo) from SPI
-static inline uint16_t spi_read_reg(uint8_t hi_reg, uint8_t lo_reg)
+static __hw_forceinline uint16_t spi_read_reg(uint8_t hi_reg, uint8_t lo_reg)
 {
 	return GET_REG_VAL_HILO(SPIAcc_GetByte(hi_reg), SPIAcc_GetByte(lo_reg));
 }

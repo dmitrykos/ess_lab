@@ -1,9 +1,26 @@
-#include "stdio.h"
-#include "pwm_driver.h"
+/* Copyright (c) 2019 by Dmitry Kostjuchenko (dmitrykos@neutroncode.com)
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
 
-#ifdef _WIN32
-	#define _TEST_PC
-#endif
+#include "hw_helper.h"
+#include "pwm_driver.h"
 
 typedef struct pwm_state_base
 {
@@ -150,4 +167,32 @@ void pwm_driver2_update(void)
 	
 	if (state2.base.counter++ > PWM_MAX)
 		state2.base.counter = 0;
+}
+
+void pwm_driver2_fade_init(PWMFade_t *fade, int32_t time_speed_usec, uint8_t brightness_max)
+{
+	memset(fade, 0, sizeof(*fade));
+	fade->progress_max = brightness_max;
+	fade->time_speed   = time_speed_usec;
+}
+
+void pwm_driver2_fade_update(PWMFade_t *fade)
+{
+	if ((fade->time += PWM_RESOLUTION_USEC) < fade->time_speed)
+		return;
+	
+	if (++fade->progress >= fade->progress_max)
+	{
+		pwm_driver2_set(fade->ch, 0);
+		
+		if (++fade->ch >= PWM_CH__MAX)
+			fade->ch = 0;
+		
+		fade->progress = 0;
+	}
+		
+	pwm_driver2_set(fade->ch, fade->progress_max - fade->progress);
+	pwm_driver2_set((fade->ch + 1) % PWM_CH__MAX, fade->progress);
+	
+	fade->time = 0;
 }

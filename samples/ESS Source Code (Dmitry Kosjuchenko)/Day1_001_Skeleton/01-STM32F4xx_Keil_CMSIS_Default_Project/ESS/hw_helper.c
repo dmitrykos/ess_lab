@@ -1,5 +1,24 @@
-#include <stdarg.h>
-#include <string.h>
+/* Copyright (c) 2019 by Dmitry Kostjuchenko (dmitrykos@neutroncode.com)
+*
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+*
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+*/
+
 #include "stm32f4xx_tim.h"
 #include "stm32f4xx_it.h"
 #include "stm32f4xx_adc.h"
@@ -51,6 +70,8 @@ void TMR_HW_DelayMSec(volatile uint32_t msec)
 // Initialize Timer 4
 void TMR4_Init(uint16_t prescaler, uint16_t period)
 {
+	// copyright notice: below implementation is sourced from the Lab's handouts
+	
 	TIM_TimeBaseInitTypeDef TIM_BaseStruct;
 	/* Enable clock for TIM4 */
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE);
@@ -78,6 +99,8 @@ void TMR4_Init(uint16_t prescaler, uint16_t period)
 // Loops until the timer has expired
 void TMR4_WaitForExpiry(void)
 {
+	// copyright notice: below implementation is sourced from the Lab's handouts
+	
 	// Check the flag. When the timer is expired, the flag is SET.
 	while(TIM_GetFlagStatus(TIM4, TIM_FLAG_Update) == RESET)
 	{
@@ -95,11 +118,11 @@ void TMR_GetPrescalerAndPeriod(uint32_t usec, uint32_t *_prescaler, uint32_t *_p
 	period = TMR_PERIOD(TMR4_FREQUENCY, usec);
 	if (period > 0xFFFF)
 	{
-		uint32_t freq = TMR4_FREQUENCY;
+		uint32_t freq;
 		for (uint32_t i = 1; (i < 16) && (period > 0xFFFF); ++i)
 		{
 			prescaler = (1 << i);
-			freq     /= prescaler;
+			freq      = TMR4_FREQUENCY / prescaler;
 			period    = TMR_PERIOD(freq, usec);
 		}			
 	}
@@ -123,6 +146,8 @@ void TMR4_InitResolutionUsec(uint32_t usec)
 // Initialize Timer 4 for interrupts
 bool_t TMR_Init_ISR(ETmrIsrId id, uint16_t prescaler, uint16_t period, TMR_ISR_Callback cb)
 {
+	// copyright notice: below implementation is sourced from the Lab's handouts
+	
 	TIM_TypeDef *TIMx;
 	switch (id)
 	{
@@ -194,6 +219,8 @@ void TMR_Init_ISR_ResolutionUsec(ETmrIsrId id, uint32_t usec, TMR_ISR_Callback c
 // This is triggered when the counter overflows
 void TIM4_IRQHandler(void)
 {
+	// copyright notice: below implementation is sourced from the Lab's handouts
+	
 	if (TIM_GetITStatus(TIM4, TIM_IT_Update) != RESET)
 	{
 		TIM_ClearITPendingBit(TIM4, TIM_IT_Update);
@@ -227,6 +254,8 @@ int fputc(int ch, FILE *f)
 
 void TEMP_Enable()
 {
+	// copyright notice: below implementation is sourced from the Lab's handouts
+	
 	/**********************************************************************************
 	* This enables the A/D converter for sampling the on board
 	* temperature sensor.
@@ -264,6 +293,8 @@ void TEMP_Enable()
 
 uint32_t TEMP_Read()
 {
+	// copyright notice: below implementation is sourced from the Lab's handouts
+	
 	uint32_t temp_value;
 	ADC_SoftwareStartConv(ADC1); //Start the conversion
 	while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET); //Processing the conversion
@@ -271,12 +302,14 @@ uint32_t TEMP_Read()
 	return temp_value;
 }
 
-float TEMP_ValueToDeg(uint32_t amp)
+float TEMP_ValueToDeg(uint32_t sens)
 {
-	static const float v_per_amp = 3.3f / 4095;
-	static const float slope     = 2.5f;
-	static const float v_25      = 0.76f;
-	
-	float temp = (amp * v_per_amp - v_25) / slope + 25.0f;
+	static const float to_V  = 3.3f / 4095;             // max resolution: V per step
+	static const float slope = 2.5f / 1000;             // slope in V
+	static const float v_cal = 1060.0f * (3.3f / 4095); // 26 deg == 1060
+	static const float t_cal = 26;                      // calibration T
+		
+	float temp = (sens * to_V - v_cal) / slope + t_cal;
+
 	return temp;
 }
